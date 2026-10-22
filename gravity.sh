@@ -17,7 +17,11 @@ export LC_ALL=C
 # Without a terminal on stdin, mv replaces leftover root-owned files instead of prompting
 if [[ "${EUID}" -eq 0 ]]; then
   chown pihole:pihole /etc/pihole
-  exec sudo -u pihole bash "$0" "$@" </dev/null
+  if sudo -n -u pihole true 2>/dev/null; then
+    exec sudo -u pihole bash "$0" "$@" </dev/null
+  fi
+  # sudo refuses to run when root's own account is locked (FreeBSD: pw lock root)
+  exec su -m pihole -c 'exec bash "$0" "$@"' "$0" "$@" </dev/null
 fi
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
@@ -133,9 +137,15 @@ gravity_swap_databases() {
   # Busybox Compat: `stat` long flags unsupported
   #   -f flag is short form of --file-system.
   #   -c flag is short form of --format.
-  availableBlocks=$(stat -f -c "%a" "${gravityDIR}")
-  # Number of blocks, used by gravity.db
-  gravityBlocks=$(stat -c "%b" "${gravityDBfile}")
+  if stat -c "%b" / >/dev/null 2>&1; then
+    availableBlocks=$(stat -f -c "%a" "${gravityDIR}")
+    # Number of blocks, used by gravity.db
+    gravityBlocks=$(stat -c "%b" "${gravityDBfile}")
+  else
+    # BSD stat: -f is the format, and it has no file-system mode
+    availableBlocks=$(df -P "${gravityDIR}" | awk 'NR == 2 {print $4}')
+    gravityBlocks=$(stat -f "%b" "${gravityDBfile}")
+  fi
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
   # Better be safe than sorry...
   oldAvail=false
@@ -198,11 +208,12 @@ database_table_from_file() {
   backup_path="${piholeDir}/migration_backup"
   backup_file="${backup_path}/$(basename "${2}")"
   # Create a temporary file with random filename with '.gravity' suffix.
-  # Note: '--suffix' requires GNU mktemp (coreutils), which is not pre-installed on Alpine, but it is installed as Pi-hole dependency.
-  tmpFile="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".gravity")"
+  # mktemp_suffix() uses GNU mktemp's --suffix where it exists
+  tmpFile="$(mktemp_suffix "${GRAVITY_TMPDIR}" ".gravity")"
 
   local timestamp
-  timestamp="$(date --utc +'%s')"
+  # Seconds since the epoch are the same in every time zone
+  timestamp="$(date +'%s')"
 
   local rowid
   declare -i rowid
@@ -643,8 +654,8 @@ gravity_DownloadBlocklistFromUrl() {
 
   # Create temp file to store content on disk instead of RAM
   # Create a temporary file with random filename with '.phgpb' suffix.
-  # Note: '--suffix' requires GNU mktemp (coreutils), which is not pre-installed on Alpine, but it is installed as Pi-hole dependency.
-  listCurlBuffer=$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".phgpb")
+  # mktemp_suffix() uses GNU mktemp's --suffix where it exists
+  listCurlBuffer=$(mktemp_suffix "${GRAVITY_TMPDIR}" ".phgpb")
 
   # For all remote files, we try to determine if the file has changed to skip
   # downloading them whenever possible.
@@ -1139,7 +1150,8 @@ migrate_to_listsCache_dir() {
   if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then
     migrated=true
     # Update the list's paths in the corresponding .sha1 files to the new location
-    sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+    sed -i.tmp "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+    rm -f "${listsCacheDir}"/*.sha1.tmp
   fi
 
   # The cache directory used to live in ${piholeDir}, but follows gravity.db now.
@@ -1149,7 +1161,8 @@ migrate_to_listsCache_dir() {
     if mv "${oldListsCacheDir}"/* "${listsCacheDir}/" 2>/dev/null; then
       migrated=true
       # The paths in the .sha1 files still point into the old cache directory
-      sed -i "s|${oldListsCacheDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+      sed -i.tmp "s|${oldListsCacheDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+      rm -f "${listsCacheDir}"/*.sha1.tmp
     fi
     # Remove the old directory, this only succeeds if it is empty
     rmdir "${oldListsCacheDir}" 2>/dev/null

@@ -176,8 +176,8 @@ Displaylist() {
             echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --compact-output ".domains[$i].domain")${COL_NC}"
             echo -e "      Comment: $(echo "${data}" | jq --compact-output ".domains[$i].comment")"
             echo -e "      Groups: $(echo "${data}" | jq --compact-output ".domains[$i].groups")"
-            echo -e "      Added: $(date -d @"$(echo "${data}" | jq --compact-output ".domains[$i].date_added")")"
-            echo -e "      Last modified: $(date -d @"$(echo "${data}" | jq --compact-output ".domains[$i].date_modified")")"
+            echo -e "      Added: $(date_from_epoch "$(echo "${data}" | jq --compact-output ".domains[$i].date_added")")"
+            echo -e "      Last modified: $(date_from_epoch "$(echo "${data}" | jq --compact-output ".domains[$i].date_modified")")"
         done
     else
         echo -e "  ${INFO} No domains found in the ${kindId} ${typeId}list"

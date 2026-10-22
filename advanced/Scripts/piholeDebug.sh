@@ -1109,7 +1109,7 @@ analyze_gravity_list() {
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
     gravity_updated_raw="$(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
-    gravity_updated="$(date -d @"${gravity_updated_raw}")"
+    gravity_updated="$(date_from_epoch "${gravity_updated_raw}")"
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
 

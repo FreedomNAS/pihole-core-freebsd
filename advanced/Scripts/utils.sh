@@ -32,7 +32,12 @@ addOrEditKeyValPair() {
 
   if grep -q "^${key}=" "${file}"; then
     # Key already exists in file, modify the value
-    sed -i "/^${key}=/c\\${key}=${value}" "${file}"
+    # awk instead of sed's c command, which GNU and BSD sed spell differently
+    local tmp
+    tmp="$(mktemp)" &&
+      awk -v k="${key}" -v v="${value}" 'index($0, k "=") == 1 {print k "=" v; next} {print}' "${file}" >"${tmp}" &&
+      cat "${tmp}" >"${file}"
+    rm -f "${tmp}"
   else
     # Key does not already exist, add it and it's value
     echo "${key}=${value}" >> "${file}"
@@ -148,4 +153,27 @@ setFTLConfigValue(){
         printf "  %s Failed to set %s. Try with sudo power\n" "${CROSS}" "${1}"
         exit 1
     esac
+}
+
+#######################
+# Prints the local date and time of a Unix timestamp
+# GNU date takes -d @<seconds>, BSD date -r <seconds>
+#######################
+date_from_epoch() {
+  date -d @"${1}" 2>/dev/null || date -r "${1}"
+}
+
+#######################
+# Creates a temporary file in a directory, its name ending in a suffix
+# GNU mktemp has --suffix; elsewhere the random name is created first and
+# then given the suffix
+#######################
+mktemp_suffix() {
+  local tmp
+  if tmp="$(mktemp -p "${1}" --suffix="${2}" 2>/dev/null)"; then
+    echo "${tmp}"
+    return 0
+  fi
+  tmp="$(mktemp "${1}/tmp.XXXXXXXXXX")" || return 1
+  mv -n "${tmp}" "${tmp}${2}" && echo "${tmp}${2}"
 }
