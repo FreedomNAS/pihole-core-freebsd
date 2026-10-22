@@ -96,7 +96,7 @@ PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
 
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 
-FTL_PID="/run/pihole-FTL.pid" # Hardcoded PID path — see GHSA-6w8x-p785-6pm4
+FTL_PID="$(ftl_pid_file)" # Hardcoded PID path — see GHSA-6w8x-p785-6pm4
 
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"

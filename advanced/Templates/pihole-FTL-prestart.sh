@@ -1,5 +1,16 @@
 #!/usr/bin/env sh
 
+# Run a command as the pihole user, whose login shell is nologin. Linux su
+# takes the shell with -s; BSD su uses -s for something else, and -m keeps
+# root's own shell instead
+as_pihole() {
+    if [ "$(uname -s)" = Linux ]; then
+        su -s /bin/sh pihole -c "$1"
+    else
+        su -m pihole -c "$1"
+    fi
+}
+
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
 mkdir -p /var/log/pihole
 chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
@@ -17,7 +28,7 @@ chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
 # the pihole user do it: it owns everything below these directories, and a
 # symlink pointing anywhere else only results in a permission error.
 # A failure here is deliberately non-fatal so it can never prevent FTL starting.
-su -s /bin/sh pihole -c '
+as_pihole '
     find /etc/pihole/ /var/log/pihole/ -type d -exec chmod 0755 {} +
     find /etc/pihole/ /var/log/pihole/ -type f ! \( -name "*.pem" -o -name "*.crt" \) -exec chmod 0640 {} +
     find /etc/pihole/ -type f \( -name "*.pem" -o -name "*.crt" \) -exec chmod 0600 {} +
@@ -37,8 +48,12 @@ su -s /bin/sh pihole -c '
 # commands simply fail with a permission error and the target is left untouched.
 # A failure here is deliberately non-fatal so it can never prevent FTL starting.
 # su is needed to change user; both files are handled in a single call.
-su -s /bin/sh pihole -c 'touch /etc/pihole/versions /etc/pihole/dhcp.leases && chmod 0644 /etc/pihole/versions /etc/pihole/dhcp.leases' || true
+as_pihole 'touch /etc/pihole/versions /etc/pihole/dhcp.leases && chmod 0644 /etc/pihole/versions /etc/pihole/dhcp.leases' || true
 
 # Touch files to ensure they exist (create if non-existing, preserve if existing)
 # Hardcoded PID path — see GHSA-6w8x-p785-6pm4
-[ -f /run/pihole-FTL.pid ] || install -D -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.pid
+if [ "$(uname -s)" = Linux ]; then
+    [ -f /run/pihole-FTL.pid ] || install -D -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.pid
+else
+    [ -f /var/run/pihole-FTL.pid ] || install -m 644 -o pihole -g pihole /dev/null /var/run/pihole-FTL.pid
+fi

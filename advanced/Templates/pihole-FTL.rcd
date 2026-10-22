@@ -1,0 +1,54 @@
+#!/bin/sh
+# shellcheck disable=SC2034,SC1091
+
+# PROVIDE: pihole_ftl
+# REQUIRE: NETWORKING syslogd
+# KEYWORD: shutdown
+#
+# Add the following to /etc/rc.conf to start pihole-FTL at boot:
+#
+# pihole_ftl_enable (bool):  Set to YES to enable pihole-FTL.
+#                            Default: NO
+# pihole_ftl_user (str):     User pihole-FTL runs as.
+#                            Default: root
+#
+# FreeBSD has no per-process capabilities, so a user other than root can
+# bind neither DNS port 53 nor a web server port below 1024. Run as pihole
+# only with unprivileged ports (dns.port, webserver.port in pihole.toml,
+# for instance behind a jail's port redirection) or with mac_portacl(4)
+# allowing that user these ports.
+
+. /etc/rc.subr
+
+name=pihole_ftl
+rcvar=pihole_ftl_enable
+
+load_rc_config $name
+
+: "${pihole_ftl_enable:=NO}"
+: "${pihole_ftl_user:=root}"
+
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
+
+command="/usr/local/bin/pihole-FTL"
+procname="${command}"
+# Hardcoded PID path, the one FTL writes itself — see GHSA-6w8x-p785-6pm4
+pidfile="/var/run/pihole-FTL.pid"
+extra_commands="reload"
+start_precmd="${name}_prestart"
+stop_postcmd="${name}_poststop"
+
+pihole_ftl_prestart()
+{
+	sh "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
+	if [ "${pihole_ftl_user}" != root ]; then
+		chown "${pihole_ftl_user}" "${pidfile}"
+	fi
+}
+
+pihole_ftl_poststop()
+{
+	sh "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
+}
+
+run_rc_command "$1"

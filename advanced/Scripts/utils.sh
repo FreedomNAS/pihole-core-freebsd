@@ -96,10 +96,22 @@ loadVersionFile() {
 }
 
 #######################
+# prints the path of FTL's PID file, hardcoded per platform as FTL itself
+# hardcodes it — see GHSA-6w8x-p785-6pm4
+#######################
+ftl_pid_file() {
+    case "$(uname -s)" in
+        Linux) echo "/run/pihole-FTL.pid" ;;
+        *) echo "/var/run/pihole-FTL.pid" ;;
+    esac
+}
+
+#######################
 # returns FTL's PID based on the content of the pihole-FTL.pid file
 #######################
 getFTLPID() {
-    local FTL_PID_FILE="/run/pihole-FTL.pid"  # hardcoded — see GHSA-6w8x-p785-6pm4
+    local FTL_PID_FILE
+    FTL_PID_FILE="$(ftl_pid_file)"
     local FTL_PID
 
     if [ -s "${FTL_PID_FILE}" ]; then
@@ -108,7 +120,7 @@ getFTLPID() {
         # The pihole user owns this file, so only accept a plain number naming a running pihole-FTL
         case "${FTL_PID}" in
             ''|*[!0-9]*) unset FTL_PID ;;
-            *) [ "$(cat "/proc/${FTL_PID}/comm" 2>/dev/null)" = "pihole-FTL" ] || unset FTL_PID ;;
+            *) [ "$(cat "/proc/${FTL_PID}/comm" 2>/dev/null || ps -o comm= -p "${FTL_PID}" 2>/dev/null)" = "pihole-FTL" ] || unset FTL_PID ;;
         esac
     fi
 
