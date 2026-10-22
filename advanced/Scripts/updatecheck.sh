@@ -20,7 +20,13 @@ if [[ "$(id -u)" -eq 0 ]]; then
     # Only the literal "reboot" argument (see below) is passed on
     reboot_arg=""
     [[ "${1:-}" == "reboot" ]] && reboot_arg="reboot"
-    su -s /bin/sh pihole -c "/opt/pihole/updatecheck.sh ${reboot_arg}"
+    # pihole's login shell is nologin: Linux su takes another one with -s,
+    # BSD su (where -s means something else) keeps root's with -m
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        su -s /bin/sh pihole -c "/opt/pihole/updatecheck.sh ${reboot_arg}"
+    else
+        su -m pihole -c "/opt/pihole/updatecheck.sh ${reboot_arg}"
+    fi
     exit "$?"
 fi
 
