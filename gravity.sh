@@ -39,7 +39,7 @@ coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
 
-piholeDir="/etc/${basename}"
+piholeDir="/etc/pihole"
 
 # Legacy (pre v5.0) list file locations
 whitelistFile="${piholeDir}/whitelist.txt"
