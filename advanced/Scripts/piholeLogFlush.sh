@@ -38,7 +38,7 @@ fi
 # The log paths come from the pihole-owned config, so never write to them as root
 as_pihole() {
     if [[ "${EUID}" -eq 0 ]]; then
-        sudo -u pihole "$@"
+        run_as_pihole "$@"
     else
         "$@"
     fi
@@ -68,7 +68,12 @@ if [[ "$*" == *"once"* ]]; then
     # Use logrotate's default state file so this run and the system's own
     # scheduled logrotate (which also reads /etc/logrotate.d/pihole) agree on
     # what's already been rotated, instead of rotating our logs twice.
-    /usr/sbin/logrotate --force /etc/logrotate.d/pihole
+    if [ -x /usr/sbin/logrotate ]; then
+        /usr/sbin/logrotate --force /etc/logrotate.d/pihole
+    else
+        # BSD rotates with newsyslog, which signals FTL to reopen its logs
+        newsyslog -F -f /usr/local/etc/newsyslog.conf.d/pihole.conf
+    fi
 else
     # Manual flushing
     flush_log "${LOGFILE}"

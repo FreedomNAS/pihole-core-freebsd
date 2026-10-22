@@ -189,3 +189,16 @@ mktemp_suffix() {
   tmp="$(mktemp "${1}/tmp.XXXXXXXXXX")" || return 1
   mv -n "${tmp}" "${tmp}${2}" && echo "${tmp}${2}"
 }
+
+#######################
+# Runs a command as the pihole user
+# sudo refuses to run when root's own account is locked (FreeBSD: pw lock
+# root), su does not care
+#######################
+run_as_pihole() {
+  if sudo -n -u pihole true 2>/dev/null; then
+    sudo -u pihole "$@"
+  else
+    su -m pihole -c 'exec "$0" "$@"' "$@"
+  fi
+}

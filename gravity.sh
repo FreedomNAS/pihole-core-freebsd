@@ -774,7 +774,7 @@ gravity_DownloadBlocklistFromUrl() {
         if [ "$(id -un)" == "root" ]; then
             # If we are root, we need to check if the pihole user has read permission
             #  otherwise, we might read files that the pihole user should not be able to read
-            if sudo -u pihole test -r "${file_path}"; then
+            if run_as_pihole test -r "${file_path}"; then
                 echo -e "${OVER}  ${INFO} Using local file ${file_path}"
             else
                 echo -e "${OVER}  ${CROSS} Cannot read file (user 'pihole' lacks read permission)"
@@ -838,7 +838,7 @@ gravity_DownloadBlocklistFromUrl() {
         if [ "$(id -un)" == "root" ]; then
           # The buffer belongs to the calling user, only the read must happen as pihole
           # shellcheck disable=SC2024
-          sudo -u pihole cat -- "${file_path}" >"${listCurlBuffer}"
+          run_as_pihole cat -- "${file_path}" >"${listCurlBuffer}"
         else
           cat -- "${file_path}" >"${listCurlBuffer}"
         fi

@@ -1,0 +1,6 @@
+# newsyslog(8) configuration for Pi-hole, the counterpart of the logrotate
+# template: FTL reopens its logs on SIGUSR2 (31)
+# logfilename                      [owner:group]  mode count size when  flags [/pid_file] [sig_num]
+/var/log/pihole/pihole.log         pihole:pihole  640  5     *    @T00  ZC    /var/run/pihole-FTL.pid 31
+/var/log/pihole/FTL.log            pihole:pihole  640  3     *    $W0D0 ZC    /var/run/pihole-FTL.pid 31
+/var/log/pihole/webserver.log      pihole:pihole  640  3     *    $W0D0 ZC    /var/run/pihole-FTL.pid 31

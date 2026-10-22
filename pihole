@@ -100,6 +100,8 @@ networkFlush() {
 updatePiholeFunc() {
   if [ -n "${DOCKER_VERSION}" ]; then
     unsupportedFunc
+  elif [ -f "${PI_HOLE_SCRIPT_DIR}/packaged" ]; then
+    packagedFunc
   else
     shift
     "${PI_HOLE_SCRIPT_DIR}"/update.sh "$@"
@@ -110,6 +112,8 @@ updatePiholeFunc() {
 repairPiholeFunc() {
   if [ -n "${DOCKER_VERSION}" ]; then
     unsupportedFunc
+  elif [ -f "${PI_HOLE_SCRIPT_DIR}/packaged" ]; then
+    packagedFunc
   else
     /etc/.pihole/automated\ install/basic-install.sh --repair
     exit 0;
@@ -135,6 +139,8 @@ chronometerFunc() {
 uninstallFunc() {
   if [ -n "${DOCKER_VERSION}" ]; then
     unsupportedFunc
+  elif [ -f "${PI_HOLE_SCRIPT_DIR}/packaged" ]; then
+    packagedFunc
   else
     "${PI_HOLE_SCRIPT_DIR}"/uninstall.sh
     exit 0
@@ -412,6 +418,8 @@ piholeCheckoutFunc() {
     echo "Please build a custom image following the steps at"
     echo "https://github.com/pi-hole/docker-pi-hole?tab=readme-ov-file#building-the-image-locally"
     exit 0
+  elif [ -f "${PI_HOLE_SCRIPT_DIR}/packaged" ]; then
+    packagedFunc
   else
     if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
       echo "Switch Pi-hole subsystems to a different GitHub branch
@@ -468,6 +476,13 @@ updateCheckFunc() {
 
 unsupportedFunc(){
   echo "Function not supported in Docker images"
+  exit 0
+}
+
+# A system package installed Pi-hole when its packaging leaves a "packaged"
+# file naming the package manager; that one updates and repairs it
+packagedFunc(){
+  echo "Pi-hole was installed with $(cat "${PI_HOLE_SCRIPT_DIR}/packaged"), use it to update, repair or remove Pi-hole"
   exit 0
 }
 

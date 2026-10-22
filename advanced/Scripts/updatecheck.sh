@@ -24,19 +24,29 @@ if [[ "$(id -u)" -eq 0 ]]; then
     exit "$?"
 fi
 
+# A system package ships no git checkout; its packaging leaves a .pkgversion
+# file with VERSION, BRANCH and HASH lines instead
+function get_package_value() {
+    [ -f "${1}/.pkgversion" ] || return 1
+    sed -n "s/^${2}=//p" "${1}/.pkgversion"
+}
+
 function get_local_branch() {
     # Return active branch
+    get_package_value "${1}" BRANCH && return
     cd "${1}" 2>/dev/null || { echo "null"; return; }
     git rev-parse --abbrev-ref HEAD || echo "null"
 }
 
 function get_local_version() {
     # Return active version
+    get_package_value "${1}" VERSION && return
     cd "${1}" 2>/dev/null || { echo "null"; return; }
     git describe --tags --always 2>/dev/null || echo "null"
 }
 
 function get_local_hash() {
+    get_package_value "${1}" HASH && return
     cd "${1}" 2>/dev/null || { echo "null"; return; }
     git rev-parse --short=8 HEAD || echo "null"
 }
