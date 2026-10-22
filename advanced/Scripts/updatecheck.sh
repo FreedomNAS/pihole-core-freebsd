@@ -180,4 +180,12 @@ chmod 0644 "${VERSION_FILE_TMP}"
 # itself, so whatever was there before (even a symlink) is swapped out. -T
 # makes mv treat "${VERSION_FILE}" as the file to replace, never as a directory
 # to move the temporary file into.
-mv -fT "${VERSION_FILE_TMP}" "${VERSION_FILE}"
+if ! mv -fT "${VERSION_FILE_TMP}" "${VERSION_FILE}" 2>/dev/null; then
+    # BSD mv has no -T: -h keeps it from following a symlink to a directory,
+    # and a real directory in that place is refused here
+    if [[ -d "${VERSION_FILE}" && ! -L "${VERSION_FILE}" ]]; then
+        echo "${VERSION_FILE} is a directory, not updating it" >&2
+        exit 1
+    fi
+    mv -fh "${VERSION_FILE_TMP}" "${VERSION_FILE}"
+fi
