@@ -28,6 +28,11 @@ load_rc_config $name
 : "${pihole_ftl_enable:=NO}"
 : "${pihole_ftl_user:=root}"
 
+# rc's PATH leaves out /usr/local: FTL runs the pihole scripts (bash) from
+# there, for gravity and the other actions of the web interface
+PATH="${PATH}:/usr/local/sbin:/usr/local/bin"
+export PATH
+
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 
 command="/usr/local/bin/pihole-FTL"
@@ -51,8 +56,7 @@ pihole_ftl_prestart()
 # install or upgrade ends with a (re)start, which is when it changes
 pihole_ftl_poststart()
 {
-	PATH="${PATH}:/usr/local/sbin:/usr/local/bin" /usr/local/bin/pihole updatechecker \
-		</dev/null >/dev/null 2>&1 &
+	/usr/local/bin/pihole updatechecker </dev/null >/dev/null 2>&1 &
 }
 
 pihole_ftl_poststop()
