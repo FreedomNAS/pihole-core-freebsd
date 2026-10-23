@@ -36,6 +36,7 @@ procname="${command}"
 pidfile="/var/run/pihole-FTL.pid"
 extra_commands="reload"
 start_precmd="${name}_prestart"
+start_postcmd="${name}_poststart"
 stop_postcmd="${name}_poststop"
 
 pihole_ftl_prestart()
@@ -44,6 +45,14 @@ pihole_ftl_prestart()
 	if [ "${pihole_ftl_user}" != root ]; then
 		chown "${pihole_ftl_user}" "${pidfile}"
 	fi
+}
+
+# The versions file the web interface and `pihole -v` read: a package
+# install or upgrade ends with a (re)start, which is when it changes
+pihole_ftl_poststart()
+{
+	PATH="${PATH}:/usr/local/sbin:/usr/local/bin" /usr/local/bin/pihole updatechecker \
+		</dev/null >/dev/null 2>&1 &
 }
 
 pihole_ftl_poststop()

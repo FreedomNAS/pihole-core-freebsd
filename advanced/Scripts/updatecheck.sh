@@ -67,6 +67,8 @@ function get_remote_version() {
 }
 
 function get_remote_hash() {
+    # A system package does not depend on git
+    command -v git >/dev/null 2>&1 || { echo "null"; return; }
     git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 1,8);}' || echo "null"
 }
 
